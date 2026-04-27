@@ -6,6 +6,7 @@
   import StaffManager from './lib/StaffManager.svelte'
 
   let activePage = 'schedule'
+  let sidebarCollapsed = false
 
   const PAGE_TITLES = {
     schedule: 'シフトスケジュール',
@@ -20,12 +21,12 @@
   href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
 />
 
-<Sidebar {activePage} onNavigate={(p) => activePage = p} />
+<Sidebar {activePage} onNavigate={(p) => activePage = p} bind:collapsed={sidebarCollapsed} />
 
 <!-- ヘッダー -->
 <header
-  class="fixed top-0 right-0 h-16 flex items-center px-10 z-40"
-  style="left: 256px; background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.3);"
+  class="fixed top-0 right-0 h-16 flex items-center px-10 z-40 transition-all duration-300"
+  style="left: {sidebarCollapsed ? '64px' : '256px'}; background: rgba(255,255,255,0.4); backdrop-filter: blur(12px); border-bottom: 1px solid rgba(255,255,255,0.3);"
 >
   <h2 class="text-lg font-semibold" style="color: var(--color-primary); letter-spacing: -0.01em;">
     {PAGE_TITLES[activePage]}
@@ -33,7 +34,7 @@
 </header>
 
 <!-- メインコンテンツ -->
-<main style="margin-left: 256px; padding-top: 64px; padding: 80px 32px 32px; min-height: 100vh;">
+<main class="transition-all duration-300" style="margin-left: {sidebarCollapsed ? '64px' : '256px'}; padding: 80px 32px 32px; min-height: 100vh;">
   <div style="max-width: min(100%, 88rem); margin: 0 auto;">
     {#if activePage === 'schedule'}
       <ShiftCalendar onOpenStats={() => (activePage = 'stats')} />
