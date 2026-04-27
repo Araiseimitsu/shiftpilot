@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#2d1605",
+                    "outline": "#72787a",
+                    "on-background": "#191c1e",
+                    "tertiary-fixed": "#ffdcc7",
+                    "surface-tint": "#45636b",
+                    "on-secondary-fixed": "#0d1d27",
+                    "on-primary-fixed": "#001f26",
+                    "secondary-container": "#d4e5f3",
+                    "primary-container": "#2c4a52",
+                    "primary": "#14333b",
+                    "on-secondary-fixed-variant": "#394954",
+                    "background": "#f7f9fb",
+                    "secondary-fixed-dim": "#b8c9d6",
+                    "surface-container-high": "#e6e8ea",
+                    "surface-container": "#eceef0",
+                    "on-secondary": "#ffffff",
+                    "secondary": "#51606c",
+                    "surface-variant": "#e0e3e5",
+                    "tertiary": "#452916",
+                    "surface-container-lowest": "#ffffff",
+                    "on-tertiary": "#ffffff",
+                    "tertiary-container": "#5e3f2a",
+                    "surface": "#f7f9fb",
+                    "on-primary": "#ffffff",
+                    "outline-variant": "#c1c7ca",
+                    "inverse-on-surface": "#eff1f3",
+                    "inverse-primary": "#acccd5",
+                    "surface-bright": "#f7f9fb",
+                    "inverse-surface": "#2d3133",
+                    "on-primary-fixed-variant": "#2d4b53",
+                    "on-surface": "#191c1e",
+                    "on-tertiary-fixed-variant": "#5f402b",
+                    "tertiary-fixed-dim": "#eabda2",
+                    "on-tertiary-container": "#d6ab90",
+                    "primary-fixed": "#c8e8f2",
+                    "surface-container-low": "#f2f4f6",
+                    "secondary-fixed": "#d4e5f3",
+                    "on-secondary-container": "#576672",
+                    "error-container": "#ffdad6",
+                    "on-primary-container": "#99b9c2",
+                    "surface-dim": "#d8dadc",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "primary-fixed-dim": "#acccd5",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#e0e3e5",
+                    "on-surface-variant": "#41484a"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "unit": "8px",
+                    "container-padding": "32px",
+                    "section-gap": "48px",
+                    "element-gap": "12px"
+            },
+            "fontFamily": {
+                    "body-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "title-sm": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "label-caps": ["Inter"]
+            },
+            "fontSize": {
+                    "body-md": ["15px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+                    "body-sm": ["13px", {"lineHeight": "1.5", "letterSpacing": "0", "fontWeight": "400"}],
+                    "title-sm": ["18px", {"lineHeight": "1.4", "letterSpacing": "0", "fontWeight": "500"}],
+                    "display-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                    "label-caps": ["11px", {"lineHeight": "1", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-indicator {
+            width: 4px;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            border-radius: 4px 0 0 4px;
+        }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background min-h-screen">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-screen w-72 border-r border-white/30 bg-white/60 backdrop-blur-xl flex flex-col py-8 px-6 space-y-4 shadow-[0_10_30px_rgba(0,0,0,0.04)] z-50">
+<div class="flex items-center space-x-3 mb-10 px-2">
+<div class="w-10 h-10 rounded-xl bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-white" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+</div>
+<div>
+<h1 class="text-2xl font-bold tracking-tighter text-[#2C4A52]">ShiftPilot</h1>
+<p class="text-[10px] uppercase tracking-widest text-slate-400 font-bold">Management Console</p>
+</div>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out text-slate-500 hover:backdrop-blur-3xl hover:bg-white/20" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-medium">Dashboard</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out text-slate-500 hover:backdrop-blur-3xl hover:bg-white/20" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-medium">Schedule</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out text-[#2C4A52] font-bold scale-105 bg-white/40 shadow-sm" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-medium">Staff</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out text-slate-500 hover:backdrop-blur-3xl hover:bg-white/20" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="font-medium">Reports</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-300 ease-in-out text-slate-500 hover:backdrop-blur-3xl hover:bg-white/20" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-medium">Settings</span>
+</a>
+</nav>
+<div class="pt-6 border-t border-white/20 space-y-2">
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-500 hover:text-slate-800 transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-medium text-sm">Support</span>
+</a>
+<a class="flex items-center space-x-3 px-4 py-3 rounded-xl text-slate-500 hover:text-error transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-medium text-sm">Logout</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-18rem)] h-20 bg-white/40 backdrop-blur-md flex justify-between items-center px-12 z-40">
+<div class="flex items-center flex-1 max-w-xl">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline text-lg">search</span>
+<input class="w-full bg-white/50 border-none rounded-full py-2.5 pl-12 pr-4 text-body-sm focus:ring-2 focus:ring-primary-container transition-all" placeholder="Search staff members, roles, or ID..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-6">
+<div class="flex items-center space-x-2">
+<button class="p-2 text-slate-500 hover:bg-white/50 rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-white/50 rounded-full transition-all">
+<span class="material-symbols-outlined">brightness_4</span>
+</button>
+</div>
+<button class="bg-primary text-white px-6 py-2 rounded-full font-title-sm text-sm hover:opacity-90 active:scale-95 transition-all">
+                Generate Shifts
+            </button>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-white shadow-sm">
+<img class="w-full h-full object-cover" data-alt="professional portrait of a senior administrator in a light blue shirt with a friendly smile" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUDoI-bb0JYyuFnafIpa5RKrlcn-abhO3MEYLz5XL-xCXC5Fj1yL79WH3WOY0atZUmRY97Fc9q5v2RcNy1YB2SBSAf_TgW3gxujVc7V0o_72qomQq_i4GK9xJXj1F9iLoHITF_97nr5eORvhCuzK6KY-BDlde8t6HkVhQLIiJqkqLhdoIbPvEEwPY_xcWccyPfxT5YvfcBegqXtIXHuqcorWq1WZFRw-Ic8_rI3fsZEyVV3oJ8iO6hYXkX66tPQesujcnUOKEdzjcX"/>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-72 pt-20 p-container-padding min-h-screen">
+<div class="max-w-7xl mx-auto space-y-gutter">
+<!-- Page Header -->
+<div class="flex items-end justify-between mb-8">
+<div>
+<h2 class="font-display-lg text-display-lg text-primary">Staff Management</h2>
+<p class="text-body-md text-slate-500">Configure shift availability, exclusion rules, and active status for your team.</p>
+</div>
+<button class="flex items-center space-x-2 bg-primary-container text-white px-5 py-2.5 rounded-xl hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-sm">add</span>
+<span class="font-title-sm text-sm">Add Member</span>
+</button>
+</div>
+<!-- Filter & Action Bar -->
+<div class="glass-panel rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+<div class="flex items-center space-x-4">
+<div class="flex items-center space-x-2 px-3 py-1.5 bg-white/40 rounded-lg border border-white/20 text-body-sm text-slate-600">
+<span class="material-symbols-outlined text-sm">filter_alt</span>
+<span class="font-medium">Filter By:</span>
+<select class="bg-transparent border-none focus:ring-0 text-sm font-semibold p-0 pr-6">
+<option>All Departments</option>
+<option>Nursing</option>
+<option>Administration</option>
+<option>Support Staff</option>
+</select>
+</div>
+<div class="flex items-center space-x-2 px-3 py-1.5 bg-white/40 rounded-lg border border-white/20 text-body-sm text-slate-600">
+<span class="font-medium">Status:</span>
+<select class="bg-transparent border-none focus:ring-0 text-sm font-semibold p-0 pr-6">
+<option>All Members</option>
+<option>Active Only</option>
+<option>Inactive</option>
+</select>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<span class="text-body-sm text-slate-400">Showing 24 of 142 members</span>
+</div>
+</div>
+<!-- Staff List Container -->
+<div class="glass-panel rounded-2xl overflow-hidden">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-white/30 border-b border-white/20">
+<th class="px-8 py-5 font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Member Details</th>
+<th class="px-6 py-5 font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Department &amp; Role</th>
+<th class="px-6 py-5 font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">NG Dates (No-Go)</th>
+<th class="px-6 py-5 font-label-caps text-label-caps text-slate-400 uppercase tracking-widest">Auto-Assign</th>
+<th class="px-6 py-5 font-label-caps text-label-caps text-slate-400 uppercase tracking-widest text-center">Status</th>
+<th class="px-8 py-5 font-label-caps text-label-caps text-slate-400 uppercase tracking-widest text-right">Actions</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-white/10">
+<!-- Staff Row 1 -->
+<tr class="hover:bg-white/40 transition-colors relative">
+<td class="px-8 py-5">
+<div class="flex items-center space-x-4">
+<div class="status-indicator bg-emerald-500"></div>
+<img class="w-10 h-10 rounded-full object-cover" data-alt="portrait of a confident female healthcare worker in modern scrubs against a soft neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzEW49HTbQwKXsz3m8tnUenouW_fF4qZPf2SU2H9tR5PUWbIhYGUdOPdjtLif1hIEbL313i9ctSMX1HC7alftE1ZuD1mARkbIdx8UQjifRk226xHg1gmtWrJMygu1yuOkyACTLxQlFLB-wXYCZThX-MjhBQyMztjSB-7kbzKmxYhWZm9RC87HJp81VRJm10W-HWhUn-6jWHlkB-TVbgMq_qBYfKsB5N2cr8OsIpdXUYWafYwC8cil0NLwmpnDqleFI4ACNUW82KYgc"/>
+<div>
+<p class="font-title-sm text-sm text-primary">Sarah Chen</p>
+<p class="text-body-sm text-slate-400">ID: SP-8842</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div>
+<p class="text-body-sm font-semibold text-slate-700">Intensive Care Unit</p>
+<p class="text-[11px] text-slate-500">Senior Nurse</p>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-tertiary-container/10 text-on-tertiary-container text-[11px] font-bold rounded border border-tertiary-container/20">Oct 12-14</span>
+<button class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-[16px]">edit_calendar</span>
+</button>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-full border border-emerald-200">ACTIVE</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Staff Row 2 -->
+<tr class="hover:bg-white/40 transition-colors relative">
+<td class="px-8 py-5">
+<div class="flex items-center space-x-4">
+<div class="status-indicator bg-emerald-500"></div>
+<img class="w-10 h-10 rounded-full object-cover" data-alt="professional male doctor in his 40s wearing a stethoscope and professional white coat" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUi8_bZN9A4uQClunydgTT14GzJ6LBUNT6fi_MYGKNJygYucO_a2DC_NxJSrfU1KoZ9COfiPZxvcnSd-rk_sWvPYoXWmY8uREz7dsSh73glCwsujJfLPpo6mOjohMyvqhSFFM2w9qvbxO0cvnoxyS3q3kaFK0Gnz9tOnqe_dFcBWTfShwG_R3FXvTb76Eu9AK-vmMHMwHlKUea-HYsXTJZnx3P-IEMwW4uDWphnkugA_yTPQ-3_TpM5oQ9NgxGcm52skYXfGHSQV0j"/>
+<div>
+<p class="font-title-sm text-sm text-primary">Marcus Holloway</p>
+<p class="text-body-sm text-slate-400">ID: SP-1102</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div>
+<p class="text-body-sm font-semibold text-slate-700">General Ward</p>
+<p class="text-[11px] text-slate-500">Resident Physician</p>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-wrap gap-1.5">
+<span class="text-body-sm text-slate-400 italic">No restrictions</span>
+<button class="w-6 h-6 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-400 transition-colors">
+<span class="material-symbols-outlined text-[16px]">add</span>
+</button>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+<span class="ml-3 text-[11px] font-bold text-error uppercase">Excluded</span>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-full border border-emerald-200">ACTIVE</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Staff Row 3 -->
+<tr class="hover:bg-white/40 transition-colors relative bg-slate-50/30">
+<td class="px-8 py-5">
+<div class="flex items-center space-x-4 opacity-60">
+<div class="status-indicator bg-slate-300"></div>
+<img class="w-10 h-10 rounded-full object-cover" data-alt="modern professional woman sitting in a bright airy office environment looking toward the camera" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDpbVbn5C_nyXPfdSNXpslK2el1N6KK_wLcjzALtf0gaqOHM4MzEDzKI3PbllBCnXw8kPlCNlGsoDT2h_eUqaHvrg01M8e93wxqrsIZ9lPxCaoNrSnVjaGknUyuXWXcUNckd_rgLvmoftm9Sepy6L7v5F7deJIsZ78vW5502k4YpeBioExOVwLxcdrxvsffDeyoaku_WEn2GTI0kED8D0HoRP8opVKSxvpFxepDtRFewfFw5Y5kRk8amGD53IR4kGlmXVo7g33NSMxt"/>
+<div>
+<p class="font-title-sm text-sm text-primary">Elena Rodriguez</p>
+<p class="text-body-sm text-slate-400">ID: SP-0922</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5 opacity-60">
+<div>
+<p class="text-body-sm font-semibold text-slate-700">Administration</p>
+<p class="text-[11px] text-slate-500">Facility Manager</p>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-slate-100 text-slate-500 text-[11px] font-bold rounded border border-slate-200 line-through">Nov 01-10</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center opacity-60">
+<label class="relative inline-flex items-center cursor-not-allowed">
+<input class="sr-only peer" disabled="" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-100 rounded-full peer peer-checked:bg-slate-300 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-200 after:border after:rounded-full after:h-5 after:w-5 after:transition-all"></div>
+</label>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="px-3 py-1 bg-slate-200 text-slate-500 text-[11px] font-bold rounded-full border border-slate-300">INACTIVE</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+<!-- Staff Row 4 -->
+<tr class="hover:bg-white/40 transition-colors relative">
+<td class="px-8 py-5">
+<div class="flex items-center space-x-4">
+<div class="status-indicator bg-amber-500"></div>
+<img class="w-10 h-10 rounded-full object-cover" data-alt="close up of a professional male project manager with a neat beard in a minimalist grey studio setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvmt7ZLtRZWvhIiD2UXdMPYHl6EKAajHNlPXgzmIYqT7yE9Tgpi6PZHiKHC_r13nQCQ0vNlA5t-ROD24f0XlPo4Vvt9PhpC9sRY8dv39XIvkNr9GP97bMHnpx9HuBxDlvtimm7nnYTIIYMHGDn2E5LQ7zGT9dXaeTEBPR1qSc6PkQDa9x9nJWD8XsBpYuCof3VpjWhm0O-xwzp7-8lF5ak-HpSmidjRpwRRlSHhKJCy15sAQ2ZB7gRH61AgvXn4K1w18xCMifzcFFY"/>
+<div>
+<p class="font-title-sm text-sm text-primary">James Wilson</p>
+<p class="text-body-sm text-slate-400">ID: SP-4412</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-5">
+<div>
+<p class="text-body-sm font-semibold text-slate-700">Support Staff</p>
+<p class="text-[11px] text-slate-500">Orderly</p>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex flex-wrap gap-1.5">
+<span class="px-2 py-0.5 bg-tertiary-container/10 text-on-tertiary-container text-[11px] font-bold rounded border border-tertiary-container/20">Oct 28</span>
+<span class="px-2 py-0.5 bg-tertiary-container/10 text-on-tertiary-container text-[11px] font-bold rounded border border-tertiary-container/20">Oct 30</span>
+</div>
+</td>
+<td class="px-6 py-5">
+<div class="flex items-center">
+<label class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox"/>
+<div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary-container"></div>
+</label>
+</div>
+</td>
+<td class="px-6 py-5 text-center">
+<span class="px-3 py-1 bg-emerald-100 text-emerald-700 text-[11px] font-bold rounded-full border border-emerald-200">ACTIVE</span>
+</td>
+<td class="px-8 py-5 text-right">
+<button class="text-slate-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+<!-- Pagination/Footer of Table -->
+<div class="px-8 py-4 bg-white/20 flex items-center justify-between">
+<button class="text-body-sm text-slate-500 hover:text-primary transition-colors flex items-center space-x-1">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+<span>Previous</span>
+</button>
+<div class="flex items-center space-x-2">
+<span class="w-8 h-8 flex items-center justify-center rounded-lg bg-primary text-white text-body-sm font-bold shadow-sm">1</span>
+<span class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/50 text-slate-600 text-body-sm cursor-pointer">2</span>
+<span class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/50 text-slate-600 text-body-sm cursor-pointer">3</span>
+<span class="px-2 text-slate-400">...</span>
+<span class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-white/50 text-slate-600 text-body-sm cursor-pointer">12</span>
+</div>
+<button class="text-body-sm text-slate-500 hover:text-primary transition-colors flex items-center space-x-1">
+<span>Next</span>
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- Dashboard Stats Preview (Asymmetric Layout element) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="glass-panel p-6 rounded-2xl col-span-2">
+<h3 class="font-title-sm text-slate-700 mb-4">Availability Overview</h3>
+<div class="h-32 flex items-end justify-between px-4">
+<div class="w-12 bg-primary-container/20 rounded-t-lg h-3/4 relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">88%</div>
+</div>
+<div class="w-12 bg-primary-container/40 rounded-t-lg h-1/2"></div>
+<div class="w-12 bg-primary-container/60 rounded-t-lg h-[90%]"></div>
+<div class="w-12 bg-primary-container/30 rounded-t-lg h-[40%]"></div>
+<div class="w-12 bg-primary-container rounded-t-lg h-[65%]"></div>
+<div class="w-12 bg-primary-container/50 rounded-t-lg h-[80%]"></div>
+<div class="w-12 bg-primary-container/20 rounded-t-lg h-[20%]"></div>
+</div>
+<div class="flex justify-between mt-4 px-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+<span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+</div>
+</div>
+<div class="glass-panel p-6 rounded-2xl flex flex-col justify-between">
+<div>
+<h3 class="font-title-sm text-slate-700 mb-2">Exclusion Conflict</h3>
+<p class="text-body-sm text-slate-500 leading-relaxed">3 members have exclusion rules that may cause shift coverage gaps next week.</p>
+</div>
+<div class="space-y-3 mt-4">
+<div class="flex items-center space-x-3 p-2 bg-error/5 rounded-lg border border-error/10">
+<span class="material-symbols-outlined text-error text-lg">warning</span>
+<span class="text-body-sm font-semibold text-error">Night Shift Gap (Oct 12)</span>
+</div>
+<button class="w-full py-2 bg-white/50 border border-white/30 rounded-xl text-body-sm font-semibold text-primary hover:bg-white transition-all">Resolve Issues</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- FAB for quick context actions (Suppressed as per rules on detail/management pages, but included here for potential sub-task focus) -->
+<button class="fixed bottom-10 right-10 w-14 h-14 bg-primary text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+<span class="material-symbols-outlined">person_add</span>
+</button>
+</body></html>

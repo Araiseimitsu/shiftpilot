@@ -1,0 +1,224 @@
+<script>
+  import { onMount } from 'svelte'
+  import { members, ngEntries, errorMsg } from './store.js'
+  import { api } from './api.js'
+
+  let newNg = { person_name: '', start_date: '', end_date: '', reason: '' }
+  let showForm = false
+
+  onMount(async () => {
+    try {
+      const [m, ng] = await Promise.all([api.getMembers(), api.getNgEntries()])
+      members.set(m)
+      ngEntries.set(ng)
+    } catch (e) {
+      errorMsg.set(e.message)
+    }
+  })
+
+  async function toggleFlag(member, flag) {
+    const updated = { ...member, [flag]: !member[flag] }
+    try {
+      const result = await api.updateMemberFlags(member.name, {
+        assignable_day1: updated.assignable_day1,
+        assignable_day2: updated.assignable_day2,
+        assignable_night: updated.assignable_night,
+      })
+      members.update(list => list.map(m => m.name === member.name ? result : m))
+    } catch (e) {
+      errorMsg.set(e.message)
+    }
+  }
+
+  async function addNg() {
+    try {
+      const created = await api.createNgEntry({
+        ...newNg,
+        person_name: newNg.person_name || null,
+      })
+      ngEntries.update(list => [...list, created])
+      newNg = { person_name: '', start_date: '', end_date: '', reason: '' }
+      showForm = false
+    } catch (e) {
+      errorMsg.set(e.message)
+    }
+  }
+
+  async function removeNg(index) {
+    try {
+      await api.deleteNgEntry(index)
+      ngEntries.update(list => list.filter((_, i) => i !== index))
+    } catch (e) {
+      errorMsg.set(e.message)
+    }
+  }
+</script>
+
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+<div class="space-y-6">
+  <!-- メンバー一覧 -->
+  <div class="glass-panel rounded-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.2);">
+      <h2 class="text-sm font-bold uppercase tracking-widest" style="color: var(--color-outline);">スタッフ別割当設定</h2>
+      <span class="text-xs" style="color: var(--color-outline);">{$members.length} 名</span>
+    </div>
+    <table class="w-full text-left">
+      <thead>
+        <tr style="background: rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.2);">
+          <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-widest" style="color: var(--color-outline);">氏名</th>
+          <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);">日勤１番</th>
+          <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);">日勤２番</th>
+          <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);">夜勤</th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each $members as member}
+          <tr class="hover:bg-white/30 transition-colors" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <td class="px-6 py-3 flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background: var(--color-primary-container);">
+                {member.name.slice(0, 1)}
+              </div>
+              <span class="text-sm font-medium" style="color: var(--color-on-surface);">{member.name}</span>
+            </td>
+            {#each [
+              { flag: 'assignable_day1', value: member.assignable_day1 },
+              { flag: 'assignable_day2', value: member.assignable_day2 },
+              { flag: 'assignable_night', value: member.assignable_night },
+            ] as { flag, value }}
+              <td class="px-4 py-3 text-center">
+                <button
+                  on:click={() => toggleFlag(member, flag)}
+                  class="inline-flex items-center justify-center w-10 h-6 rounded-full transition-all duration-200 relative"
+                  style="background: {value ? 'var(--color-primary-container)' : 'var(--color-surface-container-high)'};"
+                  aria-label="{flag} トグル"
+                >
+                  <span
+                    class="absolute w-4 h-4 rounded-full bg-white shadow transition-all duration-200"
+                    style="left: {value ? '22px' : '2px'};"
+                  ></span>
+                </button>
+              </td>
+            {/each}
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- NGエントリ管理 -->
+  <div class="glass-panel rounded-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.2);">
+      <h2 class="text-sm font-bold uppercase tracking-widest" style="color: var(--color-outline);">NGエントリ（不可日程）</h2>
+      <button
+        on:click={() => showForm = !showForm}
+        class="flex items-center gap-1 px-4 py-1.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
+        style="background: var(--color-primary-container);"
+      >
+        <span class="material-symbols-outlined text-base">add</span>
+        追加
+      </button>
+    </div>
+
+    {#if showForm}
+      <div class="px-6 py-4 border-b space-y-3" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.15);">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="ng-person" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">担当者（空欄=全体NG）</label>
+            <select
+              id="ng-person"
+              bind:value={newNg.person_name}
+              class="px-3 py-2 rounded-lg text-sm border focus:outline-none"
+              style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7);"
+            >
+              <option value="">全体NG</option>
+              {#each $members as m}
+                <option value={m.name}>{m.name}</option>
+              {/each}
+            </select>
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ng-reason" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">理由</label>
+            <input
+              id="ng-reason"
+              type="text"
+              bind:value={newNg.reason}
+              placeholder="例: 出張"
+              class="px-3 py-2 rounded-lg text-sm border focus:outline-none"
+              style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7);"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ng-start" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">開始日</label>
+            <input
+              id="ng-start"
+              type="date"
+              bind:value={newNg.start_date}
+              class="px-3 py-2 rounded-lg text-sm border focus:outline-none"
+              style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7);"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="ng-end" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">終了日</label>
+            <input
+              id="ng-end"
+              type="date"
+              bind:value={newNg.end_date}
+              class="px-3 py-2 rounded-lg text-sm border focus:outline-none"
+              style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7);"
+            />
+          </div>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button
+            on:click={() => showForm = false}
+            class="px-4 py-2 rounded-lg text-sm font-semibold border transition-all hover:bg-white/30"
+            style="border-color: var(--color-outline-variant); color: var(--color-on-surface-variant);"
+          >
+            キャンセル
+          </button>
+          <button
+            on:click={addNg}
+            disabled={!newNg.start_date || !newNg.end_date}
+            class="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style="background: var(--color-primary);"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    {#if $ngEntries.length === 0}
+      <div class="px-6 py-8 text-center text-sm" style="color: var(--color-outline);">
+        NGエントリはありません
+      </div>
+    {:else}
+      <div class="divide-y" style="border-color: rgba(255,255,255,0.1);">
+        {#each $ngEntries as ng, i}
+          <div class="px-6 py-3 flex items-center gap-3 hover:bg-white/30 transition-colors">
+            <span class="material-symbols-outlined text-sm" style="color: var(--color-error);">block</span>
+            <div class="flex-1">
+              <p class="text-sm font-semibold" style="color: var(--color-on-surface);">
+                {ng.person_name ?? '全体'}
+                <span class="font-normal ml-2 text-xs" style="color: var(--color-outline);">
+                  {ng.start_date} 〜 {ng.end_date}
+                </span>
+              </p>
+              {#if ng.reason}
+                <p class="text-xs" style="color: var(--color-on-surface-variant);">{ng.reason}</p>
+              {/if}
+            </div>
+            <button
+              on:click={() => removeNg(i)}
+              class="p-1.5 rounded-full transition-colors hover:bg-red-50"
+              style="color: var(--color-outline);"
+            >
+              <span class="material-symbols-outlined text-base">delete</span>
+            </button>
+          </div>
+        {/each}
+      </div>
+    {/if}
+  </div>
+</div>

@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #14333b;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #2c4a52;
+  --color-on-primary-container: #99b9c2;
+  --color-secondary: #51606c;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #d4e5f3;
+  --color-on-secondary-container: #576672;
+  --color-tertiary: #452916;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #5e3f2a;
+  --color-on-tertiary-container: #d6ab90;
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-surface: #f7f9fb;
+  --color-on-surface: #191c1e;
+  --color-on-surface-variant: #41484a;
+  --color-outline: #72787a;
+  --color-outline-variant: #c1c7ca;
+  --color-surface-container: #eceef0;
+  --color-surface-container-low: #f2f4f6;
+  --color-surface-container-high: #e6e8ea;
+  --color-background: #f7f9fb;
+  --color-on-background: #191c1e;
+
+  --font-sans: 'Inter', sans-serif;
+}
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    font-size: 15px;
+    line-height: 1.6;
+    background-color: var(--color-background);
+    color: var(--color-on-background);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+}
