@@ -174,7 +174,7 @@ def _carry_forward_week_nights_from_history(
     return added
 
 
-def _is_first_day_shift_after_last_night(
+def _is_next_day_shift_weekend_after_last_night(
     name: str,
     current: date,
     history: list[ShiftEntry],
@@ -184,12 +184,23 @@ def _is_first_day_shift_after_last_night(
     if last_night is None or current <= last_night:
         return False
 
+    first_day_shift_after_night: date | None = None
     cursor = last_night + timedelta(days=1)
-    while cursor < current:
+    while cursor <= current + timedelta(days=6):
         if cursor.weekday() in day_shift_weekdays:
-            return False
+            first_day_shift_after_night = cursor
+            break
         cursor += timedelta(days=1)
-    return current.weekday() in day_shift_weekdays
+
+    if first_day_shift_after_night is None:
+        return False
+
+    protected_week_start = _week_start(first_day_shift_after_night, min(day_shift_weekdays))
+    protected_week_end = protected_week_start + timedelta(days=6)
+    return (
+        protected_week_start <= current <= protected_week_end
+        and current.weekday() in day_shift_weekdays
+    )
 
 
 def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
@@ -311,7 +322,7 @@ def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
                     last_night = _last_shift_date(name, history, ShiftCategory.NIGHT)
                     if last_night and (current - last_night).days <= cfg.night_cooldown_days:
                         continue
-                    if _is_first_day_shift_after_last_night(name, current, history, sched_cfg.day_shift_weekdays):
+                    if _is_next_day_shift_weekend_after_last_night(name, current, history, sched_cfg.day_shift_weekdays):
                         continue
                     candidates.append(name)
 

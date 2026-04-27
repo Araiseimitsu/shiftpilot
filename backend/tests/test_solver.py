@@ -295,7 +295,7 @@ def test_existing_history_slots_in_range_are_fixed():
     assert matching_day[0].person_name == "田中"
 
 
-def test_first_day_shift_after_night_week_excludes_that_person():
+def test_next_weekend_day_shifts_after_night_week_exclude_that_person():
     history = [
         ShiftEntry(
             date=date(2026, 5, 3),
@@ -306,13 +306,14 @@ def test_first_day_shift_after_night_week_excludes_that_person():
     ]
     result = generate_schedule(_make_request(history=history))
 
-    first_day_after_night = [
+    weekend_days_after_night = [
         entry for entry in result.entries
-        if entry.date == date(2026, 5, 9) and entry.shift_category == ShiftCategory.DAY
+        if entry.date in {date(2026, 5, 9), date(2026, 5, 10)}
+        and entry.shift_category == ShiftCategory.DAY
     ]
 
-    assert first_day_after_night
-    assert all(entry.person_name != "楮本" for entry in first_day_after_night)
+    assert weekend_days_after_night
+    assert all(entry.person_name != "楮本" for entry in weekend_days_after_night)
 
 
 def test_two_week_range():
