@@ -2,9 +2,14 @@
   import { onMount } from 'svelte'
   import { members, ngEntries, errorMsg } from './store.js'
   import { api } from './api.js'
+  import NgPasteBulk from './NgPasteBulk.svelte'
 
   let newNg = { person_name: '', start_date: '', end_date: '', reason: '' }
   let showForm = false
+
+  let newMemberName = ''
+  let newMemberFlags = { assignable_day1: true, assignable_day2: true, assignable_night: true }
+  let showAddMember = false
 
   onMount(async () => {
     try {
@@ -17,14 +22,43 @@
   })
 
   async function toggleFlag(member, flag) {
-    const updated = { ...member, [flag]: !member[flag] }
+    const flags = {
+      assignable_day1: member.assignable_day1,
+      assignable_day2: member.assignable_day2,
+      assignable_night: member.assignable_night,
+      [flag]: !member[flag],
+    }
     try {
-      const result = await api.updateMemberFlags(member.name, {
-        assignable_day1: updated.assignable_day1,
-        assignable_day2: updated.assignable_day2,
-        assignable_night: updated.assignable_night,
-      })
+      const result = await api.updateMemberFlags(member.name, flags)
       members.update(list => list.map(m => m.name === member.name ? result : m))
+    } catch (e) {
+      errorMsg.set(e.message)
+    }
+  }
+
+  async function addMember() {
+    if (!newMemberName.trim()) return
+    try {
+      const created = await api.createMember({
+        name: newMemberName.trim(),
+        assignable_day1: newMemberFlags.assignable_day1,
+        assignable_day2: newMemberFlags.assignable_day2,
+        assignable_night: newMemberFlags.assignable_night,
+      })
+      members.update(list => [...list, created])
+      newMemberName = ''
+      newMemberFlags = { assignable_day1: true, assignable_day2: true, assignable_night: true }
+      showAddMember = false
+    } catch (e) {
+      errorMsg.set(e.message)
+    }
+  }
+
+  async function removeMember(name) {
+    if (!confirm(`${name} を削除しますか？`)) return
+    try {
+      await api.deleteMember(name)
+      members.update(list => list.filter(m => m.name !== name))
     } catch (e) {
       errorMsg.set(e.message)
     }
@@ -61,8 +95,68 @@
   <div class="glass-panel rounded-2xl overflow-hidden">
     <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.2);">
       <h2 class="text-sm font-bold uppercase tracking-widest" style="color: var(--color-outline);">スタッフ別割当設定</h2>
-      <span class="text-xs" style="color: var(--color-outline);">{$members.length} 名</span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs" style="color: var(--color-outline);">{$members.length} 名</span>
+        <button
+          on:click={() => showAddMember = !showAddMember}
+          class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+          style="background: var(--color-primary-container);"
+        >
+          <span class="material-symbols-outlined text-base">add</span>
+          追加
+        </button>
+      </div>
     </div>
+
+    {#if showAddMember}
+      <div class="px-6 py-4 border-b space-y-3" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.15);">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="member-name" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">氏名</label>
+            <input
+              id="member-name"
+              type="text"
+              bind:value={newMemberName}
+              placeholder="例: 山田"
+              class="px-3 py-2 rounded-lg text-sm border focus:outline-none"
+              style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7);"
+            />
+          </div>
+          <div class="flex items-end gap-4 pb-1">
+            <label class="flex items-center gap-2 text-sm" style="color: var(--color-on-surface);">
+              <input type="checkbox" bind:checked={newMemberFlags.assignable_day1} class="rounded" />
+              日勤１番
+            </label>
+            <label class="flex items-center gap-2 text-sm" style="color: var(--color-on-surface);">
+              <input type="checkbox" bind:checked={newMemberFlags.assignable_day2} class="rounded" />
+              日勤２番
+            </label>
+            <label class="flex items-center gap-2 text-sm" style="color: var(--color-on-surface);">
+              <input type="checkbox" bind:checked={newMemberFlags.assignable_night} class="rounded" />
+              夜勤
+            </label>
+          </div>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button
+            on:click={() => showAddMember = false}
+            class="px-4 py-2 rounded-lg text-sm font-semibold border transition-all hover:bg-white/30"
+            style="border-color: var(--color-outline-variant); color: var(--color-on-surface-variant);"
+          >
+            キャンセル
+          </button>
+          <button
+            on:click={addMember}
+            disabled={!newMemberName.trim()}
+            class="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style="background: var(--color-primary);"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    {/if}
+
     <table class="w-full text-left">
       <thead>
         <tr style="background: rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.2);">
@@ -70,6 +164,7 @@
           <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);">日勤１番</th>
           <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);">日勤２番</th>
           <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);">夜勤</th>
+          <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);"></th>
         </tr>
       </thead>
       <tbody>
@@ -100,10 +195,26 @@
                 </button>
               </td>
             {/each}
+            <td class="px-4 py-3 text-center">
+              <button
+                on:click={() => removeMember(member.name)}
+                class="p-1.5 rounded-full transition-colors hover:bg-red-50"
+                style="color: var(--color-outline);"
+                aria-label="削除"
+              >
+                <span class="material-symbols-outlined text-base">delete</span>
+              </button>
+            </td>
           </tr>
         {/each}
       </tbody>
     </table>
+  </div>
+
+  <!-- 一括貼り付け登録 -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <NgPasteBulk shiftType="day" members={$members} />
+    <NgPasteBulk shiftType="night" members={$members} />
   </div>
 
   <!-- NGエントリ管理 -->

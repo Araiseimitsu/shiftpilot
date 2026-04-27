@@ -1,7 +1,19 @@
+import pytest
+import shutil
 from fastapi.testclient import TestClient
 from backend.app.main import app
+from backend.app.core.config import _SETTINGS_PATH
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def restore_settings():
+    backup = _SETTINGS_PATH.with_suffix(".yaml.bak")
+    shutil.copy2(_SETTINGS_PATH, backup)
+    yield
+    shutil.copy2(backup, _SETTINGS_PATH)
+    backup.unlink()
 
 
 def test_health():
@@ -25,6 +37,51 @@ def test_member_fields():
     assert "assignable_day1" in member
     assert "assignable_day2" in member
     assert "assignable_night" in member
+
+
+def test_create_member():
+    payload = {
+        "name": "テスト太郎",
+        "assignable_day1": True,
+        "assignable_day2": False,
+        "assignable_night": True,
+    }
+    res = client.post("/members", json=payload)
+    assert res.status_code == 201
+    data = res.json()
+    assert data["name"] == "テスト太郎"
+    assert data["active"] is True
+    assert data["assignable_day1"] is True
+    assert data["assignable_day2"] is False
+    assert data["assignable_night"] is True
+
+    res2 = client.get("/members")
+    names = [m["name"] for m in res2.json()]
+    assert "テスト太郎" in names
+
+
+def test_create_member_duplicate():
+    payload = {"name": "丸岡"}
+    res = client.post("/members", json=payload)
+    assert res.status_code == 409
+
+
+def test_create_and_delete_member():
+    payload = {"name": "削除用テスト"}
+    create_res = client.post("/members", json=payload)
+    assert create_res.status_code == 201
+
+    del_res = client.delete("/members/削除用テスト")
+    assert del_res.status_code == 204
+
+    list_res = client.get("/members")
+    names = [m["name"] for m in list_res.json()]
+    assert "削除用テスト" not in names
+
+
+def test_delete_member_not_found():
+    res = client.delete("/members/存在しない名前")
+    assert res.status_code == 404
 
 
 def test_ng_entries_empty_initially():

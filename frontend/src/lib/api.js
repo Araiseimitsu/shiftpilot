@@ -14,10 +14,14 @@ async function request(method, path, body) {
 
 export const api = {
   getMembers: () => request('GET', '/members'),
+  createMember: (member) => request('POST', '/members', member),
+  deleteMember: (name) => request('DELETE', `/members/${encodeURIComponent(name)}`),
   updateMemberFlags: (name, flags) => request('PATCH', `/members/${encodeURIComponent(name)}/flags`, flags),
   getNgEntries: () => request('GET', '/ng_entries'),
   createNgEntry: (entry) => request('POST', '/ng_entries', entry),
   deleteNgEntry: (index) => request('DELETE', `/ng_entries/${index}`),
+  parseNgBulk: (text, defaultYear, shiftType) => request('POST', '/ng_entries/bulk_parse', { text, default_year: defaultYear, shift_type: shiftType }),
+  registerNgBulk: (items, shiftType) => request('POST', '/ng_entries/bulk', { items, shift_type: shiftType }),
   getHistory: () => request('GET', '/history'),
   getHistoryState: () => request('GET', '/history/state'),
   getHistorySource: () => request('GET', '/history/source'),
