@@ -31,11 +31,13 @@ def _wait_until_ready(url: str, timeout_seconds: float = 10.0) -> None:
     raise RuntimeError(f"API server did not start: {url}")
 
 
+from backend.app.main import app
+
 def main() -> None:
     port = _find_free_port()
     base_url = f"http://{HOST}:{port}"
     config = uvicorn.Config(
-        "backend.app.main:app",
+        app,
         host=HOST,
         port=port,
         log_level="warning",

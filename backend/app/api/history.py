@@ -12,7 +12,11 @@ from backend.app.schemas.shift import ShiftEntry
 router = APIRouter(prefix="/history", tags=["history"])
 
 # history.py は backend/app/api にあるため、リポジトリルートは parents[3]
-_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+import sys
+if getattr(sys, 'frozen', False):
+    _PROJECT_ROOT = Path(sys.executable).parent
+else:
+    _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _DEFAULT_REL = ".docs/previous_data.csv"
 _DEFAULT_CSV = _PROJECT_ROOT / ".docs" / "previous_data.csv"
 

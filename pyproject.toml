@@ -25,3 +25,9 @@ shiftpilot = "desktop_app:main"
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pillow>=12.2.0",
+    "pyinstaller>=6.20.0",
+]
