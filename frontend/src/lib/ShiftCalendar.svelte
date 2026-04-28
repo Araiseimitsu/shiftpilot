@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte'
-  import { scheduleResult, warnings, loading, errorMsg, members, ngEntries, scheduleView } from './store.js'
+  import { scheduleResult, warnings, loading, errorMsg, members, ngEntries, scheduleView, manualMembers } from './store.js'
   import { api } from './api.js'
 
   /** 当番統計ページへ（親から渡す） */
@@ -24,6 +24,43 @@
     const d = new Date(`${dateStr}T00:00:00`)
     d.setDate(d.getDate() + days)
     return d.toISOString().slice(0, 10)
+  }
+
+  function getDatesInRange(start, end) {
+    const dates = []
+    const cur = new Date(start)
+    const last = new Date(end)
+    while (cur <= last) {
+      dates.push(cur.toISOString().slice(0, 10))
+      cur.setDate(cur.getDate() + 1)
+    }
+    return dates
+  }
+
+  function ensureManualSlots(entries, start, end) {
+    if (!start || !end) return entries
+    const dates = getDatesInRange(start, end)
+    const existing = new Set((entries || []).filter(e => e.shift_category === 'Manual').map(e => dateOf(e)))
+    const added = []
+    for (const d of dates) {
+      if (!existing.has(d)) {
+        added.push({ date: d, shift_category: 'Manual', shift_index: 1, person_name: '' })
+      }
+    }
+    return [...(entries || []), ...added]
+  }
+
+  function extractManualSlots(entries) {
+    return (entries || []).filter(e => e.shift_category === 'Manual')
+  }
+
+  function mergeManualSlots(generated, existingManual) {
+    const nonManual = (generated || []).filter(e => e.shift_category !== 'Manual')
+    const manualByDate = new Map()
+    for (const e of existingManual) {
+      manualByDate.set(dateOf(e), e)
+    }
+    return [...nonManual, ...existingManual]
   }
 
   // デフォルト: 今週月曜〜日曜
@@ -106,6 +143,14 @@
   }
 
   function candidateNames(entry) {
+    if (entry.shift_category === 'Manual') {
+      const names = new Set($manualMembers.map((m) => m.name))
+      names.add(entry.person_name)
+      // 「未割当」の空選択は先頭に1つだけ。メンバー名が '' のときと二重にならないよう除外してから結合する
+      names.delete('')
+      const sorted = [...names].sort((a, b) => a.localeCompare(b, 'ja'))
+      return ['', ...sorted]
+    }
     const list = $members.filter((m) => m.active)
     let fromFlags = list
     if (entry.shift_category === 'Night') {
@@ -137,6 +182,9 @@
           next[i] = { ...e, person_name: newName }
         }
       }
+    } else if (entry.shift_category === 'Manual') {
+      const ix = next.findIndex((e) => slotKey(e) === k0)
+      if (ix >= 0) next[ix] = { ...next[ix], person_name: newName }
     } else {
       const ix = next.findIndex((e) => slotKey(e) === k0)
       if (ix >= 0) next[ix] = { ...next[ix], person_name: newName }
@@ -152,19 +200,20 @@
 
   function buildExportEntries() {
     if (!localEntries) {
-      return nextHistory.length > 0 ? nextHistory : $scheduleResult
+      return ensureManualSlots(nextHistory.length > 0 ? nextHistory : $scheduleResult, startDate, endDate)
     }
     if (!lastNextHistoryForExport) {
       return localEntries
     }
     const slotToPerson = new Map(localEntries.map((e) => [slotKey(e), e.person_name]))
-    return lastNextHistoryForExport.map((e) => {
+    const base = lastNextHistoryForExport.map((e) => {
       const k = slotKey(e)
       if (slotToPerson.has(k)) {
         return { ...e, person_name: slotToPerson.get(k) }
       }
       return e
     })
+    return [...base, ...extractManualSlots(localEntries)]
   }
 
   async function generate() {
@@ -178,7 +227,8 @@
       lastNextHistoryForExport = result.next_history
         ? JSON.parse(JSON.stringify(result.next_history))
         : null
-      localEntries = result.entries ? JSON.parse(JSON.stringify(result.entries)) : null
+      const merged = mergeManualSlots(result.entries, extractManualSlots(localEntries))
+      localEntries = ensureManualSlots(merged, startDate, endDate)
       snapshotEntries = localEntries ? JSON.parse(JSON.stringify(localEntries)) : null
       referenceHistoryState = result.reference_history_state ?? referenceHistoryState
       nextHistoryState = result.history_state ?? null
@@ -236,17 +286,6 @@
     return map
   }
 
-  function getDatesInRange(start, end) {
-    const dates = []
-    const cur = new Date(start)
-    const last = new Date(end)
-    while (cur <= last) {
-      dates.push(cur.toISOString().slice(0, 10))
-      cur.setDate(cur.getDate() + 1)
-    }
-    return dates
-  }
-
   function dayLabel(dateStr) {
     const d = new Date(dateStr)
     return DAY_LABELS[d.getDay() === 0 ? 6 : d.getDay() - 1]
@@ -257,11 +296,17 @@
     return d.getDay() === 0 || d.getDay() === 6
   }
 
-  function sortedEntries(entries) {
-    return [...entries].sort((a, b) => a.shift_category.localeCompare(b.shift_category) || a.shift_index - b.shift_index)
+  function categorySortOrder(cat) {
+    if (cat === 'Day') return 0
+    if (cat === 'Night') return 1
+    return 2
   }
 
-  $: displayList = localEntries ?? $scheduleResult
+  function sortedEntries(entries) {
+    return [...entries].sort((a, b) => categorySortOrder(a.shift_category) - categorySortOrder(b.shift_category) || a.shift_index - b.shift_index)
+  }
+
+  $: displayList = ensureManualSlots(localEntries ?? $scheduleResult, startDate, endDate)
   $: if (displayList?.length && startDate && endDate) {
     scheduleView.set({ entries: displayList, rangeStart: startDate, rangeEnd: endDate })
   } else if (!displayList?.length) {
@@ -272,6 +317,7 @@
     if (!displayList) return 0
     let n = 0
     for (const e of displayList) {
+      if (e.shift_category === 'Manual') continue
       if (ngInfo(e.person_name, dateOf(e)).violation) n += 1
     }
     return n
@@ -456,6 +502,7 @@
       <span class="inline-flex items-center gap-1" style="color: var(--color-on-surface);">
         <span class="inline-block w-1 h-3 rounded-sm" style="background: #2e7d32;"></span>日
         <span class="inline-block w-1 h-3 rounded-sm" style="background: #1e3a5f;"></span>夜
+        <span class="inline-block w-1 h-3 rounded-sm" style="background: #7c4dff;"></span>手
         <span class="inline-block w-1.5 h-3 rounded-sm" style="background: #e11d48;"></span>NG
       </span>
       <span
@@ -551,7 +598,7 @@
                       <div class="flex-1 flex flex-col gap-0.5 min-h-0 pt-0.5">
                         {#if rowSlots.length > 0}
                           {#each sortedEntries(rowSlots) as entry (slotKey(entry) + d)}
-                            {@const ngi = ngInfo(entry.person_name, dateOf(entry))}
+                            {@const ngi = entry.shift_category === 'Manual' ? { violation: false, reason: '', global: false } : ngInfo(entry.person_name, dateOf(entry))}
                             <div
                               class="relative flex-1 min-h-0 min-w-0 rounded overflow-hidden pl-0.5 pr-0.5 py-0.5 flex items-center"
                               class:ring-1={ngi.violation}
@@ -569,14 +616,16 @@
                                   ? '#e11d48'
                                   : entry.shift_category === 'Night'
                                     ? '#1e3a5f'
-                                    : '#2e7d32'}"
+                                    : entry.shift_category === 'Manual'
+                                      ? '#7c4dff'
+                                      : '#2e7d32'}"
                               ></div>
                               <div class="pl-1 w-full min-w-0 flex items-center gap-0.5">
                                 <span
                                   class="shrink-0 w-3.5 text-[8px] font-extrabold text-center"
                                   style="color: var(--color-outline);"
                                 >
-                                  {entry.shift_category === 'Night' ? '夜' : String(entry.shift_index)}</span
+                                  {entry.shift_category === 'Night' ? '夜' : entry.shift_category === 'Manual' ? '手' : String(entry.shift_index)}</span
                                 >
                                 <label class="min-w-0 flex-1 block">
                                   <span class="sr-only">担当者</span>

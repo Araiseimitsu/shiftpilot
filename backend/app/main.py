@@ -1,20 +1,25 @@
+"""FastAPI エントリ。"""
 from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
+
+# `uv run -m uvicorn app.main:app`（cwd=backend）のように起動しても
+# `backend` パッケージを import できるよう、先にリポジトリルートを PYTHONPATH に入れる。
+_repo_root = Path(__file__).resolve().parents[2]
+if str(_repo_root) not in sys.path:
+    sys.path.insert(0, str(_repo_root))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-# `python backend/app/main.py` や `uvicorn app.main:app` でも
-# `backend.app...` の絶対 import が解決できるようにする。
-_PROJECT_ROOT = Path(__file__).resolve().parents[2]
-_FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
-if str(_PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(_PROJECT_ROOT))
+from backend.app.project_root import project_root as _project_root
 
-from backend.app.api import members, ng_entries, history, schedule
+_PROJECT_ROOT = _project_root()
+_FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
+
+from backend.app.api import manual_staff, members, ng_entries, history, schedule
 
 
 @asynccontextmanager
@@ -33,7 +38,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for router in (members.router, ng_entries.router, history.router, schedule.router):
+for router in (
+    members.router,
+    ng_entries.router,
+    history.router,
+    schedule.router,
+    manual_staff.router,
+):
     app.include_router(router)
     app.include_router(router, prefix="/api")
 

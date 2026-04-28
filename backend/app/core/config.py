@@ -3,7 +3,9 @@ from typing import Any
 import yaml
 from pydantic import BaseModel
 
-_PROJECT_ROOT = Path(__file__).parents[3]
+from backend.app.project_root import project_root
+
+_PROJECT_ROOT = project_root()
 _SETTINGS_PATH = _PROJECT_ROOT / "config" / "settings.yaml"
 
 

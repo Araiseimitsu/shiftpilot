@@ -142,6 +142,11 @@
                   日2 {sortKey === 'day2' ? (sortDir > 0 ? '↑' : '↓') : ''}
                 </button>
               </th>
+              <th class="p-2.5 font-bold tabular-nums text-right whitespace-nowrap hidden sm:table-cell">
+                <button type="button" class="font-bold hover:underline" on:click={() => toggleSort('manual')}>
+                  手 {sortKey === 'manual' ? (sortDir > 0 ? '↑' : '↓') : ''}
+                </button>
+              </th>
               <th class="p-2.5 font-bold tabular-nums text-right whitespace-nowrap">
                 <button type="button" class="font-bold hover:underline" on:click={() => toggleSort('nightDays')}>
                   夜(日) {sortKey === 'nightDays' ? (sortDir > 0 ? '↑' : '↓') : ''}
@@ -171,6 +176,7 @@
                 <td class="p-2.5 tabular-nums text-right font-bold">{p.totalSlots}</td>
                 <td class="p-2.5 tabular-nums text-right hidden sm:table-cell">{p.day1}</td>
                 <td class="p-2.5 tabular-nums text-right hidden sm:table-cell">{p.day2}</td>
+                <td class="p-2.5 tabular-nums text-right hidden sm:table-cell">{p.manual}</td>
                 <td class="p-2.5 tabular-nums text-right">{p.nightDays}</td>
                 <td class="p-2.5 tabular-nums text-right hidden md:table-cell">{p.nightWeeks}</td>
                 <td class="p-2.5 tabular-nums text-right" title="日勤のみ、日付どうしの最短間隔">{gapLabel(p.minDayOnlyGapDays)}</td>

@@ -61,6 +61,7 @@ export function computeScheduleStats(entries, nightWeekStartPy = NIGHT_WEEK_STAR
         totalSlots: 0,
         day1: 0,
         day2: 0,
+        manual: 0,
         nightDays: 0,
         nightWeekAnchors: new Set(),
         mergedEventKeys: new Set(),
@@ -75,6 +76,8 @@ export function computeScheduleStats(entries, nightWeekStartPy = NIGHT_WEEK_STAR
       const anchor = weekStartDateStr(ds, nightWeekStartPy)
       row.nightWeekAnchors.add(anchor)
       row.mergedEventKeys.add(`N:${anchor}`)
+    } else if (e.shift_category === 'Manual') {
+      row.manual += 1
     } else {
       if (e.shift_index === 1) row.day1 += 1
       else row.day2 += 1
@@ -98,6 +101,7 @@ export function computeScheduleStats(entries, nightWeekStartPy = NIGHT_WEEK_STAR
       totalSlots: row.totalSlots,
       day1: row.day1,
       day2: row.day2,
+      manual: row.manual,
       nightDays: row.nightDays,
       nightWeeks: row.nightWeekAnchors.size,
       minMergedGapDays: mergedDates.length < 2 ? null : minMergedGap,

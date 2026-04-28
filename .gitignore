@@ -25,6 +25,7 @@ dist/
 # App Specific Data
 # 過去データとして更新されるCSVを除外
 .docs/previous_data.csv
+.docs/manual_staff.json
 
 # Created assets (optionally ignored if you want to keep only source)
 # icon.ico

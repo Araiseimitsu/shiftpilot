@@ -8,9 +8,13 @@ from urllib.request import urlopen
 import uvicorn
 import webview
 
+from backend.app.project_root import project_root
+
 
 APP_TITLE = "ShiftPilot"
 HOST = "127.0.0.1"
+_PROJECT_ROOT = project_root()
+_FRONTEND_DIST = _PROJECT_ROOT / "frontend" / "dist"
 
 
 def _find_free_port() -> int:
@@ -34,6 +38,12 @@ def _wait_until_ready(url: str, timeout_seconds: float = 10.0) -> None:
 from backend.app.main import app
 
 def main() -> None:
+    if not (_FRONTEND_DIST / "index.html").is_file():
+        raise RuntimeError(
+            "フロントエンドが未ビルドです。まず frontend でビルドしてください:\n"
+            "  cd frontend && npm run build"
+        )
+
     port = _find_free_port()
     base_url = f"http://{HOST}:{port}"
     config = uvicorn.Config(

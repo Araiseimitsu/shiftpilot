@@ -1,8 +1,10 @@
 <script>
   import { onMount } from 'svelte'
-  import { members, ngEntries, errorMsg } from './store.js'
+  import { members, ngEntries, errorMsg, manualMembers } from './store.js'
   import { api } from './api.js'
   import NgPasteBulk from './NgPasteBulk.svelte'
+
+  let activeTab = 'auto' // 'auto' | 'manual'
 
   let newNg = { person_name: '', start_date: '', end_date: '', reason: '' }
   let showForm = false
@@ -64,6 +66,28 @@
     }
   }
 
+  // --- 手入力用スタッフ管理（ローカル） ---
+  let newManualName = ''
+  let showAddManual = false
+
+  function addManualMember() {
+    if (!newManualName.trim()) return
+    const name = newManualName.trim()
+    if ($manualMembers.some(m => m.name === name)) {
+      errorMsg.set(`${name} は既に存在します`)
+      return
+    }
+    manualMembers.update(list => [...list, { name }])
+    newManualName = ''
+    showAddManual = false
+    errorMsg.set('')
+  }
+
+  function removeManualMember(name) {
+    if (!confirm(`${name} を削除しますか？`)) return
+    manualMembers.update(list => list.filter(m => m.name !== name))
+  }
+
   async function addNg() {
     try {
       const created = await api.createNgEntry({
@@ -91,7 +115,30 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
 
 <div class="space-y-6">
-  <!-- メンバー一覧 -->
+  <!-- タブ -->
+  <div class="flex gap-2">
+    <button
+      on:click={() => activeTab = 'auto'}
+      class="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+      style={activeTab === 'auto'
+        ? 'background: var(--color-primary); color: var(--color-on-primary);'
+        : 'background: rgba(255,255,255,0.3); color: var(--color-on-surface);'}
+    >
+      自動生成用スタッフ
+    </button>
+    <button
+      on:click={() => activeTab = 'manual'}
+      class="px-4 py-2 rounded-xl text-sm font-semibold transition-all"
+      style={activeTab === 'manual'
+        ? 'background: var(--color-primary); color: var(--color-on-primary);'
+        : 'background: rgba(255,255,255,0.3); color: var(--color-on-surface);'}
+    >
+      手入力用（担当者の設定）
+    </button>
+  </div>
+
+  <!-- 自動生成用スタッフ -->
+  {#if activeTab === 'auto'}
   <div class="glass-panel rounded-2xl overflow-hidden">
     <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.2);">
       <h2 class="text-sm font-bold uppercase tracking-widest" style="color: var(--color-outline);">スタッフ別割当設定</h2>
@@ -210,7 +257,95 @@
       </tbody>
     </table>
   </div>
+  {/if}
 
+  <!-- 手入力用: 担当者名の設定のみ（NG・一括登録は自動生成用タブ） -->
+  {#if activeTab === 'manual'}
+  <div class="glass-panel rounded-2xl overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.2);">
+      <h2 class="text-sm font-bold uppercase tracking-widest" style="color: var(--color-outline);">手入力用・担当者</h2>
+      <div class="flex items-center gap-3">
+        <span class="text-xs" style="color: var(--color-outline);">{$manualMembers.length} 名</span>
+        <button
+          on:click={() => showAddManual = !showAddManual}
+          class="flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold text-white transition-all hover:opacity-90"
+          style="background: var(--color-primary-container);"
+        >
+          <span class="material-symbols-outlined text-base">add</span>
+          追加
+        </button>
+      </div>
+    </div>
+
+    {#if showAddManual}
+      <div class="px-6 py-4 border-b space-y-3" style="border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.15);">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label for="manual-name" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">氏名</label>
+            <input
+              id="manual-name"
+              type="text"
+              bind:value={newManualName}
+              placeholder="例: 山田"
+              class="px-3 py-2 rounded-lg text-sm border focus:outline-none"
+              style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7);"
+            />
+          </div>
+        </div>
+        <div class="flex gap-2 justify-end">
+          <button
+            on:click={() => showAddManual = false}
+            class="px-4 py-2 rounded-lg text-sm font-semibold border transition-all hover:bg-white/30"
+            style="border-color: var(--color-outline-variant); color: var(--color-on-surface-variant);"
+          >
+            キャンセル
+          </button>
+          <button
+            on:click={addManualMember}
+            disabled={!newManualName.trim()}
+            class="px-5 py-2 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
+            style="background: var(--color-primary);"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+    {/if}
+
+    <table class="w-full text-left">
+      <thead>
+        <tr style="background: rgba(255,255,255,0.15); border-bottom: 1px solid rgba(255,255,255,0.2);">
+          <th class="px-6 py-3 text-[11px] font-bold uppercase tracking-widest" style="color: var(--color-outline);">氏名</th>
+          <th class="px-4 py-3 text-[11px] font-bold uppercase tracking-widest text-center" style="color: var(--color-outline);"></th>
+        </tr>
+      </thead>
+      <tbody>
+        {#each $manualMembers as member}
+          <tr class="hover:bg-white/30 transition-colors" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+            <td class="px-6 py-3 flex items-center gap-3">
+              <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white shrink-0" style="background: #7c4dff;">
+                {member.name.slice(0, 1)}
+              </div>
+              <span class="text-sm font-medium" style="color: var(--color-on-surface);">{member.name}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <button
+                on:click={() => removeManualMember(member.name)}
+                class="p-1.5 rounded-full transition-colors hover:bg-red-50"
+                style="color: var(--color-outline);"
+                aria-label="削除"
+              >
+                <span class="material-symbols-outlined text-base">delete</span>
+              </button>
+            </td>
+          </tr>
+        {/each}
+      </tbody>
+    </table>
+  </div>
+  {/if}
+
+  {#if activeTab === 'auto'}
   <!-- 一括貼り付け登録 -->
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
     <NgPasteBulk shiftType="day" members={$members} />
@@ -332,4 +467,5 @@
       </div>
     {/if}
   </div>
+  {/if}
 </div>

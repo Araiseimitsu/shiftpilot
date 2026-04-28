@@ -20,6 +20,7 @@ _COL_DATE = 0
 _COL_DAY1 = 1
 _COL_DAY2 = 2
 _COL_NIGHT = 3
+_COL_MANUAL = 4
 
 _DATE_FORMATS = ["%Y/%m/%d", "%Y-%m-%d"]
 
@@ -60,6 +61,7 @@ def load_csv(path: Path) -> list[ShiftEntry]:
         _append_if(entries, d, ShiftCategory.DAY, 1, row, _COL_DAY1)
         _append_if(entries, d, ShiftCategory.DAY, 2, row, _COL_DAY2)
         _append_if(entries, d, ShiftCategory.NIGHT, 1, row, _COL_NIGHT)
+        _append_if(entries, d, ShiftCategory.MANUAL, 1, row, _COL_MANUAL)
     return entries
 
 
@@ -86,7 +88,7 @@ def dump_csv(entries: Sequence[ShiftEntry]) -> bytes:
     """ShiftEntry リストを CP932 CSV バイト列に変換する。"""
     buf = io.StringIO()
     writer = csv.writer(buf)
-    writer.writerow(["日付", "1番手(日勤)", "2番手(日勤)", "夜勤1番手"])
+    writer.writerow(["日付", "1番手(日勤)", "2番手(日勤)", "夜勤1番手", "手入力"])
 
     # 日付ごとにまとめる
     by_date: dict[date, dict[tuple[ShiftCategory, int], str]] = {}
@@ -100,6 +102,7 @@ def dump_csv(entries: Sequence[ShiftEntry]) -> bytes:
             row_map.get((ShiftCategory.DAY, 1), ""),
             row_map.get((ShiftCategory.DAY, 2), ""),
             row_map.get((ShiftCategory.NIGHT, 1), ""),
+            row_map.get((ShiftCategory.MANUAL, 1), ""),
         ])
 
     return buf.getvalue().encode(ENCODING)

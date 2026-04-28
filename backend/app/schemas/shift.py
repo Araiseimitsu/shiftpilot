@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class ShiftCategory(str, Enum):
     DAY = "Day"
     NIGHT = "Night"
+    MANUAL = "Manual"
 
 
 class ShiftEntry(BaseModel):

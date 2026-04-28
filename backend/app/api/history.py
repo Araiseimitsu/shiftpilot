@@ -1,4 +1,5 @@
 from pathlib import Path
+import sys
 import tempfile
 
 from fastapi import APIRouter, HTTPException, UploadFile
@@ -6,19 +7,26 @@ from fastapi.responses import Response
 
 from backend.app.core.csv_io import dump_csv, load_csv, ENCODING
 from backend.app.core.history_state import build_history_state, normalize_entries
+from backend.app.project_root import project_root
 from backend.app.schemas.history import HistorySourceInfo, HistoryState
 from backend.app.schemas.shift import ShiftEntry
 
 router = APIRouter(prefix="/history", tags=["history"])
 
-# history.py は backend/app/api にあるため、リポジトリルートは parents[3]
-import sys
-if getattr(sys, 'frozen', False):
-    _PROJECT_ROOT = Path(sys.executable).parent
-else:
-    _PROJECT_ROOT = Path(__file__).resolve().parents[3]
-_DEFAULT_REL = ".docs/previous_data.csv"
-_DEFAULT_CSV = _PROJECT_ROOT / ".docs" / "previous_data.csv"
+
+def _resolved_default_csv() -> tuple[str, Path]:
+    """既定履歴CSVの(API表示用説明文字列, 実パス)。
+    PyInstaller ビルド時は .exe と同じフォルダの previous_data.csv を参照する。
+    """
+    if getattr(sys, "frozen", False):
+        p = Path(sys.executable).resolve().parent / "previous_data.csv"
+        return ("previous_data.csv（実行ファイルと同じフォルダ）", p)
+    repo = project_root()
+    p = repo / ".docs" / "previous_data.csv"
+    return (".docs/previous_data.csv", p)
+
+
+_DEFAULT_REL, _DEFAULT_CSV = _resolved_default_csv()
 
 # アップロード済みデータのインメモリキャッシュ
 _history: list[ShiftEntry] = []
@@ -28,7 +36,7 @@ _source_label: str = ""
 
 
 def load_default_csv() -> None:
-    """デフォルトCSVを読み込む。アプリ起動時（lifespan）に呼ばれる。"""
+    """既定CSVがあれば読み込む（開発時: .docs/、PyInstaller: exe と同じフォルダ）。起動時の lifespan から呼ぶ。"""
     global _loaded, _source_kind, _source_label
     if not _loaded and _DEFAULT_CSV.exists():
         _history.extend(load_csv(_DEFAULT_CSV))
@@ -86,9 +94,14 @@ def get_history_source() -> HistorySourceInfo:
             default_path=_DEFAULT_REL,
         )
     if not _DEFAULT_CSV.exists() and not _history:
+        hint = (
+            f"{_DEFAULT_REL} が見つかりません。同じ場所に置くか、POST /history/upload でアップロードしてください。"
+            if getattr(sys, "frozen", False)
+            else f"{_DEFAULT_REL} が見つかりません。リポジトリに配置するか、POST /history/upload でアップロードしてください。"
+        )
         return HistorySourceInfo(
             kind="empty",
-            label=f"{_DEFAULT_REL} が見つかりません。リポジトリに配置するか、POST /history/upload でアップロードしてください。",
+            label=hint,
             row_count=0,
             default_path=_DEFAULT_REL,
         )
