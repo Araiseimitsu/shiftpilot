@@ -97,6 +97,7 @@ def _night_candidate_sort_key(
     history: list[ShiftEntry],
     current_week_start: date,
     night_start_weekday: int,
+    prior_weekend_day_names: set[str] | None = None,
 ) -> tuple[int, int, int, str]:
     """候補が複数のとき: 前回夜勤週（週始め基準）から最も日数が空いている人を最優先、同率で従来の回転・回数。名前で安定化。"""
     last_ws = _last_night_week_start(name, history, night_start_weekday)
@@ -104,7 +105,26 @@ def _night_candidate_sort_key(
     last_person = _last_shift_person(history, ShiftCategory.NIGHT, 1)
     rot = _rotation_distance(name, pool, last_person)
     count = _night_block_count(name, history, night_start_weekday)
-    return (-gap_days, rot, count, name)
+    prior_weekend_penalty = 1 if prior_weekend_day_names and name in prior_weekend_day_names else 0
+    return (prior_weekend_penalty, -gap_days, rot, count, name)
+
+
+def _prior_weekend_day_shift_names(
+    history: list[ShiftEntry],
+    current_week_start: date,
+    day_shift_weekdays: list[int],
+) -> set[str]:
+    """夜勤開始直前の土日など、日勤対象曜日に入っていた担当者を返す。"""
+    return {
+        e.person_name
+        for e in history
+        if (
+            e.shift_category == ShiftCategory.DAY
+            and e.date < current_week_start
+            and (current_week_start - e.date).days <= 2
+            and e.date.weekday() in day_shift_weekdays
+        )
+    }
 
 
 def _day_candidate_sort_key(
@@ -250,6 +270,11 @@ def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
         if weekday == sched_cfg.night_shift_start_weekday:
             sat = current + timedelta(days=(5 - weekday) % 7)
             sun = sat + timedelta(days=1)
+            prior_weekend_day_names = _prior_weekend_day_shift_names(
+                history,
+                current,
+                sched_cfg.day_shift_weekdays,
+            )
             week_dates = [
                 current + timedelta(days=d)
                 for d in range(7)
@@ -284,7 +309,12 @@ def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
             else:
                 candidates.sort(
                     key=lambda n: _night_candidate_sort_key(
-                        n, pool_night, history, current, sched_cfg.night_shift_start_weekday
+                        n,
+                        pool_night,
+                        history,
+                        current,
+                        sched_cfg.night_shift_start_weekday,
+                        prior_weekend_day_names,
                     )
                 )
                 chosen = candidates[0]

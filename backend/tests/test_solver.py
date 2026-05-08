@@ -136,6 +136,104 @@ def test_night_picks_longest_gap_since_last_night_week(monkeypatch: pytest.Monke
     assert {e.person_name for e in ns} == {"A遠い"}
 
 
+def test_night_prefers_person_without_prior_weekend_day_shift(monkeypatch: pytest.MonkeyPatch):
+    """月曜夜勤の直前土日に日勤していた人は、他候補がいれば夜勤候補の優先度を下げる。"""
+    m_a = config.MemberConfig(
+        name="A直前日勤",
+        active=True,
+        assignable_day1=True,
+        assignable_day2=True,
+        assignable_night=True,
+    )
+    m_b = config.MemberConfig(
+        name="B未担当",
+        active=True,
+        assignable_day1=True,
+        assignable_day2=True,
+        assignable_night=True,
+    )
+    settings = config.Settings(
+        members=[m_a, m_b],
+        schedule=config.ScheduleConfig(
+            day_shift_weekdays=[5, 6],
+            night_shift_start_weekday=0,
+        ),
+        constraints=config.ConstraintsConfig(
+            day_min_interval=14,
+            night_min_interval_weeks=7,
+            night_cooldown_days=2,
+        ),
+    )
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", lambda: settings)
+    history = [
+        ShiftEntry(
+            date=_WEEK_START - timedelta(weeks=12),
+            shift_category=ShiftCategory.NIGHT,
+            shift_index=1,
+            person_name="A直前日勤",
+        ),
+        ShiftEntry(
+            date=_WEEK_START - timedelta(weeks=8),
+            shift_category=ShiftCategory.NIGHT,
+            shift_index=1,
+            person_name="B未担当",
+        ),
+        ShiftEntry(
+            date=_WEEK_START - timedelta(days=2),
+            shift_category=ShiftCategory.DAY,
+            shift_index=1,
+            person_name="A直前日勤",
+        ),
+    ]
+
+    result = generate_schedule(ScheduleRequest(start_date=_WEEK_START, end_date=_WEEK_END, history=history))
+    nights = [e for e in result.entries if e.date >= _WEEK_START and e.shift_category == ShiftCategory.NIGHT]
+
+    assert {e.person_name for e in nights} == {"B未担当"}
+
+
+def test_night_allows_prior_weekend_day_shift_when_no_other_candidate(monkeypatch: pytest.MonkeyPatch):
+    """直前土日に日勤していても、候補不足なら月曜夜勤へ割り当てる。"""
+    member = config.MemberConfig(
+        name="A直前日勤",
+        active=True,
+        assignable_day1=True,
+        assignable_day2=True,
+        assignable_night=True,
+    )
+    settings = config.Settings(
+        members=[member],
+        schedule=config.ScheduleConfig(
+            day_shift_weekdays=[5, 6],
+            night_shift_start_weekday=0,
+        ),
+        constraints=config.ConstraintsConfig(
+            day_min_interval=14,
+            night_min_interval_weeks=7,
+            night_cooldown_days=2,
+        ),
+    )
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", lambda: settings)
+    history = [
+        ShiftEntry(
+            date=_WEEK_START - timedelta(days=1),
+            shift_category=ShiftCategory.DAY,
+            shift_index=1,
+            person_name="A直前日勤",
+        )
+    ]
+
+    result = generate_schedule(ScheduleRequest(start_date=_WEEK_START, end_date=_WEEK_END, history=history))
+    nights = [e for e in result.entries if e.date >= _WEEK_START and e.shift_category == ShiftCategory.NIGHT]
+
+    assert len(nights) == 7
+    assert {e.person_name for e in nights} == {"A直前日勤"}
+
+
 def test_night_shift_short_week_when_later_days_are_ng_holiday():
     """週の途中で期間が終わる・連休で木〜日が全体NGでも、月〜水の夜勤は割り当て可能。"""
     end_wed = _WEEK_START + timedelta(days=2)  # 水曜まで
