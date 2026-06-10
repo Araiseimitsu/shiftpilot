@@ -14,7 +14,7 @@
   let manualOverrides = {} // key: originalName, value: resolvedName
 
   $: panelTitle = shiftType === 'night' ? '夜勤NG 一括貼り付け' : '日勤NG 一括貼り付け'
-  $: placeholder = '例：\n山田太郎\n5/10、5/17\n佐藤花子\n5/3,6/6'
+  $: placeholder = '例：\n6/27,28　7/18,25,26\n\n矢野祐次\n7/19,7/20,7/26\n\n髙田明良\n不可日なし\n\n今井敬史'
   $: memberNames = members.map(m => m.name)
 
   // 各プレビューアイテムの解決結果
@@ -105,7 +105,7 @@
   <div class="px-6 py-4 space-y-3" style="background: rgba(255,255,255,0.1);">
     <div class="flex flex-col gap-1">
       <label for="paste-{shiftType}" class="text-xs font-semibold uppercase tracking-widest" style="color: var(--color-outline);">
-        貼り付けテキスト（名前と日付をそのまま貼り付け）
+        貼り付けテキスト（日付の下に名前がある形式）
       </label>
       <textarea
         id="paste-{shiftType}"
@@ -116,7 +116,7 @@
         style="border-color: var(--color-outline-variant); background: rgba(255,255,255,0.7); resize: vertical;"
       ></textarea>
       <p class="text-[11px]" style="color: var(--color-outline);">
-        ※ 区切り（カンマ・スペース・改行）の揺れ、月省略、全角数字・「日」付きなどに対応しています
+        ※ 名前の上にある日付をその人のNGとして解析します。区切りの揺れ、月省略、全角数字、「不可日なし」などのコメントに対応しています
       </p>
     </div>
 
