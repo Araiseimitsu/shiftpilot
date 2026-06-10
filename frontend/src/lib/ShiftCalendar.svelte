@@ -198,6 +198,21 @@
     }
   }
 
+  /** 再生成をまたいで固定し続ける手動確定枠（slotKey → entry）。「シフト生成」でクリア */
+  let pinnedSlots = new Map()
+
+  /** スナップショットとの差分＝今回ユーザーが手動で変更した枠（Manual と未割当は除く） */
+  function currentManualEdits() {
+    if (!localEntries || !snapshotEntries) return []
+    const snapByKey = new Map(snapshotEntries.map((e) => [slotKey(e), e.person_name]))
+    return localEntries.filter(
+      (e) =>
+        e.shift_category !== 'Manual' &&
+        e.person_name &&
+        snapByKey.get(slotKey(e)) !== e.person_name
+    )
+  }
+
   function buildExportEntries() {
     if (!localEntries) {
       return ensureManualSlots(nextHistory.length > 0 ? nextHistory : $scheduleResult, startDate, endDate)
@@ -216,11 +231,20 @@
     return [...base, ...extractManualSlots(localEntries)]
   }
 
-  async function generate() {
+  async function generate(pinnedEntries = []) {
     loading.set(true)
     errorMsg.set('')
     try {
-      const result = await api.generateSchedule({ start_date: startDate, end_date: endDate })
+      const payload = { start_date: startDate, end_date: endDate }
+      if (pinnedEntries.length > 0) {
+        payload.pinned_entries = pinnedEntries.map((e) => ({
+          date: dateOf(e),
+          shift_category: e.shift_category,
+          shift_index: e.shift_index,
+          person_name: e.person_name,
+        }))
+      }
+      const result = await api.generateSchedule(payload)
       scheduleResult.set(result.entries)
       warnings.set(result.warnings)
       nextHistory = result.next_history ?? result.entries
@@ -237,6 +261,20 @@
     } finally {
       loading.set(false)
     }
+  }
+
+  /** 通常生成: 過去の手動確定もリセットして全枠を組み直す */
+  function generateFresh() {
+    pinnedSlots = new Map()
+    return generate()
+  }
+
+  /** 手動で変更した枠だけ固定し、残りをソルバに組み直させる */
+  function regenerateKeepingEdits() {
+    for (const e of currentManualEdits()) {
+      pinnedSlots.set(slotKey(e), e)
+    }
+    return generate([...pinnedSlots.values()])
   }
 
   async function exportCsv() {
@@ -385,7 +423,7 @@
       />
     </div>
     <button
-      on:click={generate}
+      on:click={generateFresh}
       disabled={$loading}
       class="px-6 py-2.5 rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
       style="background: var(--color-primary); color: var(--color-on-primary);"
@@ -394,6 +432,16 @@
     </button>
     {#if displayList}
       {#if isDirty}
+        <button
+          on:click={regenerateKeepingEdits}
+          disabled={$loading}
+          class="px-6 py-2.5 rounded-full text-sm font-semibold transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
+          style="background: var(--color-tertiary, #7c4dff); color: white;"
+          title="手動で変更した枠は固定したまま、残りの枠をソルバが条件付きで埋め直します"
+        >
+          <span class="material-symbols-outlined align-middle text-base mr-1">push_pin</span>
+          手動配置を保持して再生成
+        </button>
         <button
           on:click={resetLocalEdits}
           class="px-5 py-2.5 rounded-full text-sm font-semibold border transition-all hover:bg-white/50"

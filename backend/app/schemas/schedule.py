@@ -10,6 +10,8 @@ class ScheduleRequest(BaseModel):
     end_date: date
     ng_entries: list[NGEntry] = Field(default_factory=list)
     history: list[ShiftEntry] = Field(default_factory=list)
+    # ユーザーが手動で確定した枠。ソルバはこの枠を変更せず、残りを条件付きで埋める
+    pinned_entries: list[ShiftEntry] = Field(default_factory=list)
 
 
 class ScheduleResult(BaseModel):

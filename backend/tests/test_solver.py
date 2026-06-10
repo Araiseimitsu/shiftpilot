@@ -452,3 +452,95 @@ def test_sunday_period_start_carries_week_night_from_history():
     ]
     assert len(sun_nights) == 1
     assert sun_nights[0].person_name == "高橋拓"
+
+
+def _five_member_settings() -> config.Settings:
+    members = [
+        config.MemberConfig(
+            name=n,
+            active=True,
+            assignable_day1=True,
+            assignable_day2=True,
+            assignable_night=True,
+        )
+        for n in ["A川", "B田", "C山", "D野", "E原"]
+    ]
+    return config.Settings(
+        members=members,
+        schedule=config.ScheduleConfig(
+            day_shift_weekdays=[5, 6],
+            night_shift_start_weekday=0,
+        ),
+        constraints=config.ConstraintsConfig(
+            day_min_interval=14,
+            night_min_interval_weeks=7,
+            night_cooldown_days=2,
+        ),
+    )
+
+
+def test_pinned_day_entry_is_kept(monkeypatch: pytest.MonkeyPatch):
+    """手動確定した日勤枠はソルバに上書きされず、そのスロットは1件のみ。"""
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", _five_member_settings)
+    sat = _WEEK_START + timedelta(days=5)
+    pinned = ShiftEntry(
+        date=sat, shift_category=ShiftCategory.DAY, shift_index=1, person_name="D野"
+    )
+    result = generate_schedule(_make_request(pinned_entries=[pinned]))
+    slot = [
+        e for e in result.entries
+        if e.date == sat and e.shift_category == ShiftCategory.DAY and e.shift_index == 1
+    ]
+    assert len(slot) == 1
+    assert slot[0].person_name == "D野"
+    # 同日の2番手や夜勤に同一人物が重複しない
+    same_day_others = [
+        e for e in result.entries
+        if e.date == sat and not (e.shift_category == ShiftCategory.DAY and e.shift_index == 1)
+    ]
+    assert all(e.person_name != "D野" for e in same_day_others)
+
+
+def test_pinned_night_entry_carries_to_whole_week(monkeypatch: pytest.MonkeyPatch):
+    """週の一部だけ夜勤を手動確定しても、同じ担当者が週全体に引き継がれる。"""
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", _five_member_settings)
+    pinned = ShiftEntry(
+        date=_WEEK_START, shift_category=ShiftCategory.NIGHT, shift_index=1, person_name="E原"
+    )
+    result = generate_schedule(_make_request(pinned_entries=[pinned]))
+    nights = [e for e in result.entries if e.shift_category == ShiftCategory.NIGHT]
+    assert len(nights) == 7
+    assert {e.person_name for e in nights} == {"E原"}
+
+
+def test_pinned_overrides_history_same_slot(monkeypatch: pytest.MonkeyPatch):
+    """履歴と同一スロットに手動確定がある場合、手動確定が優先され next_history にも反映。"""
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", _five_member_settings)
+    sat = _WEEK_START + timedelta(days=5)
+    hist_entry = ShiftEntry(
+        date=sat, shift_category=ShiftCategory.DAY, shift_index=1, person_name="A川"
+    )
+    pinned = ShiftEntry(
+        date=sat, shift_category=ShiftCategory.DAY, shift_index=1, person_name="B田"
+    )
+    result = generate_schedule(
+        _make_request(history=[hist_entry], pinned_entries=[pinned])
+    )
+    slot = [
+        e for e in result.entries
+        if e.date == sat and e.shift_category == ShiftCategory.DAY and e.shift_index == 1
+    ]
+    assert len(slot) == 1
+    assert slot[0].person_name == "B田"
+    next_slot = [
+        e for e in result.next_history
+        if e.date == sat and e.shift_category == ShiftCategory.DAY and e.shift_index == 1
+    ]
+    assert len(next_slot) == 1
+    assert next_slot[0].person_name == "B田"

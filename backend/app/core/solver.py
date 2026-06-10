@@ -237,13 +237,26 @@ def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
     history: list[ShiftEntry] = list(request.history)
     reference_history_state = build_history_state(history)
     warnings: list[str] = []
+    # 手動確定枠（Manual カテゴリと期間外・未割当は対象外）。同一スロットでは履歴より優先される
+    pinned_entries = [
+        e
+        for e in request.pinned_entries
+        if request.start_date <= e.date <= request.end_date
+        and e.person_name
+        and e.shift_category != ShiftCategory.MANUAL
+    ]
+    pinned_keys = {(e.date, e.shift_category, e.shift_index) for e in pinned_entries}
     fixed_entries = [
         entry
         for entry in history
         if request.start_date <= entry.date <= request.end_date
+        and (entry.date, entry.shift_category, entry.shift_index) not in pinned_keys
     ]
-    generated_entries: list[ShiftEntry] = []
-    result_entries: list[ShiftEntry] = list(fixed_entries)
+    generated_entries: list[ShiftEntry] = list(pinned_entries)
+    result_entries: list[ShiftEntry] = [*fixed_entries, *pinned_entries]
+    if pinned_entries:
+        # 間隔・連勤などの制約判定に手動確定枠も反映させる
+        history = history + pinned_entries
 
     carried_nights = _carry_forward_week_nights_from_history(
         start_date=request.start_date,
@@ -286,6 +299,25 @@ def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
                 and not _is_global_ng(d, ng_entries)
             ]
             if not open_night_dates:
+                current += timedelta(days=1)
+                continue
+            # 週内に手動確定・履歴の夜勤担当が既にいれば、新候補を選ばずその人で残りを埋める
+            # （夜勤は週単位1名のため、別人を混在させない）
+            week_night_entries = [
+                e
+                for e in result_entries
+                if e.shift_category == ShiftCategory.NIGHT
+                and current <= e.date < current + timedelta(days=7)
+            ]
+            if week_night_entries:
+                chosen = max(week_night_entries, key=lambda e: (e.date, e.shift_index)).person_name
+                week_entries = [
+                    ShiftEntry(date=d, shift_category=ShiftCategory.NIGHT, shift_index=1, person_name=chosen)
+                    for d in open_night_dates
+                ]
+                result_entries.extend(week_entries)
+                generated_entries.extend(week_entries)
+                history = history + week_entries
                 current += timedelta(days=1)
                 continue
             # 休業日を除いた夜勤が7日分に満たない週は、7週空け（night_min_interval_weeks）のままだと全員
