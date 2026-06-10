@@ -4,7 +4,7 @@
   import { findBestMatch } from './fuzzyMatch.js'
 
   export let shiftType = 'day' // 'day' | 'night'
-  export let members = [] // 既存メンバー名リスト（未登録チェック用）
+  export let members = [] // 事前登録済みスタッフ
 
   let text = ''
   let year = new Date().getFullYear()
@@ -27,7 +27,7 @@
     return { ...item, resolvedName: match.name, method: match.method, score: match.score }
   })
 
-  $: unresolvedItems = resolvedItems.filter(i => !i.resolvedName)
+  $: registeredItems = resolvedItems.filter(i => i.resolvedName)
 
   async function parsePreview() {
     if (!text.trim()) {
@@ -49,15 +49,11 @@
   }
 
   async function register() {
-    if (resolvedItems.length === 0) return
-    if (unresolvedItems.length > 0) {
-      alert(`未解決の名前が ${unresolvedItems.length} 件あります。名前を選択してください。`)
-      return
-    }
+    if (registeredItems.length === 0) return
     try {
       loading = true
       // resolvedName で置き換えて登録
-      const toRegister = resolvedItems.map(i => ({
+      const toRegister = registeredItems.map(i => ({
         person_name: i.resolvedName,
         dates: i.dates,
       }))
@@ -143,11 +139,11 @@
     <div class="border-t" style="border-color: rgba(255,255,255,0.2);">
       <div class="px-6 py-3 flex items-center justify-between" style="background: rgba(255,255,255,0.15);">
         <h3 class="text-xs font-bold uppercase tracking-widest" style="color: var(--color-outline);">
-          解析結果（{resolvedItems.length}名 / {resolvedItems.reduce((a, b) => a + b.dates.length, 0)}日）
+          解析結果（{registeredItems.length}名 / {registeredItems.reduce((a, b) => a + b.dates.length, 0)}日）
         </h3>
         <button
           on:click={register}
-          disabled={loading || resolvedItems.length === 0 || unresolvedItems.length > 0}
+          disabled={loading || registeredItems.length === 0}
           class="px-4 py-1.5 rounded-lg text-sm font-semibold text-white transition-all hover:opacity-90 disabled:opacity-50"
           style="background: var(--color-primary-container);"
         >
@@ -155,41 +151,29 @@
         </button>
       </div>
 
-      {#if unresolvedItems.length > 0}
-        <div class="px-6 py-2 text-[11px] font-semibold" style="background: rgba(255,200,200,0.25); color: var(--color-error);">
-          <span class="material-symbols-outlined text-xs align-middle">warning</span>
-          未解決の名前があります。プルダウンで正しい名前を選択してください。
-        </div>
-      {/if}
-
-      {#if previewItems.length === 0}
+      {#if registeredItems.length === 0}
         <div class="px-6 py-6 text-center text-sm" style="color: var(--color-outline);">
-          有効なデータが検出されませんでした。テキスト形式を確認してください。
+          登録済みスタッフに一致するデータはありません
         </div>
       {:else}
         <div class="max-h-64 overflow-y-auto">
-          {#each resolvedItems as item, idx}
+          {#each registeredItems as item, idx}
             <div class="px-6 py-2.5 flex items-start gap-3 hover:bg-white/20 transition-colors"
                  style="border-bottom: 1px solid rgba(255,255,255,0.08);">
               <div class="w-32 shrink-0">
-                {#if item.resolvedName}
-                  <span class="text-sm font-semibold" style="color: var(--color-on-surface);">
-                    {#if item.method === 'manual' || item.method === 'exact'}
-                      {item.resolvedName}
-                    {:else}
-                      {item.person_name} <span class="text-[10px]" style="color: var(--color-outline);">→</span> {item.resolvedName}
-                    {/if}
-                  </span>
-                  {#if item.method === 'fuzzy'}
-                    <span class="ml-1 text-[10px] px-1 py-0.5 rounded" style="background: rgba(255,200,100,0.3); color: var(--color-on-surface-variant);">類似</span>
+                <span class="text-sm font-semibold" style="color: var(--color-on-surface);">
+                  {#if item.method === 'manual' || item.method === 'exact'}
+                    {item.resolvedName}
+                  {:else}
+                    {item.person_name} <span class="text-[10px]" style="color: var(--color-outline);">→</span> {item.resolvedName}
                   {/if}
-                {:else}
-                  <span class="text-sm font-semibold" style="color: var(--color-error);">{item.person_name}</span>
-                  <span class="ml-1 text-[10px]" style="color: var(--color-error);">(未登録)</span>
+                </span>
+                {#if item.method === 'fuzzy'}
+                  <span class="ml-1 text-[10px] px-1 py-0.5 rounded" style="background: rgba(255,200,100,0.3); color: var(--color-on-surface-variant);">類似</span>
                 {/if}
               </div>
 
-              <!-- 手動選択プルダウン（未解決 or 修正したい場合） -->
+              <!-- 手動選択プルダウン（登録済みスタッフ内で修正したい場合） -->
               <div class="shrink-0">
                 <select
                   class="px-2 py-1 rounded-lg text-[11px] border focus:outline-none"
@@ -198,7 +182,7 @@
                     manualOverrides = { ...manualOverrides, [item.person_name]: e.target.value || null }
                   }}
                 >
-                  <option value="">{item.resolvedName ? '変更...' : '名前を選択'}</option>
+                  <option value="">変更...</option>
                   {#each memberNames as name}
                     <option value={name} selected={item.resolvedName === name}>{name}</option>
                   {/each}
