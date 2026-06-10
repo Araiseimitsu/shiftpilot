@@ -104,6 +104,48 @@ class TestNGParser:
         assert result[0].person_name == "幅下孝一"
         assert result[0].dates == [date(2025, 5, 10), date(2025, 5, 17), date(2025, 6, 21)]
 
+    def test_dates_then_name_with_blank_lines(self):
+        """日付→空行→名前パターン"""
+        text = "6/27,28　7/18,25,26\n\n矢野祐次"
+        result = parse_ng_text(text, default_year=2026)
+        assert len(result) == 1
+        assert result[0].person_name == "矢野祐次"
+        assert result[0].dates == [
+            date(2026, 6, 27),
+            date(2026, 6, 28),
+            date(2026, 7, 18),
+            date(2026, 7, 25),
+            date(2026, 7, 26),
+        ]
+
+    def test_dates_above_name_with_no_unavailable_comment(self):
+        """日付先行形式では、不可日なしコメントを名前として扱わない"""
+        text = (
+            "7/4,7/5,8/1,8/2\n\n"
+            "楮本丈一郎\n"
+            "不可日なし\n\n"
+            "加藤凌司\n"
+            "6/27 6/28 7/19 7/20 8/1 8/2 8/8\n\n"
+            "勅使河原祐介"
+        )
+        result = parse_ng_text(text, default_year=2026)
+        assert [r.person_name for r in result] == ["楮本丈一郎", "勅使河原祐介"]
+        assert result[0].dates == [
+            date(2026, 7, 4),
+            date(2026, 7, 5),
+            date(2026, 8, 1),
+            date(2026, 8, 2),
+        ]
+        assert result[1].dates == [
+            date(2026, 6, 27),
+            date(2026, 6, 28),
+            date(2026, 7, 19),
+            date(2026, 7, 20),
+            date(2026, 8, 1),
+            date(2026, 8, 2),
+            date(2026, 8, 8),
+        ]
+
     def test_alternating_dates_name_pattern(self):
         """元のユーザー提供形式：日付→名前→日付→名前の交互"""
         text = (

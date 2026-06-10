@@ -27,6 +27,19 @@ _TOKEN_SPLIT_RE = re.compile(r"[,，、.．\s　]+")
 
 # 名前として扱わないキーワード
 _NOISE_WORDS = {"回答者一覧", "一覧", "回答者", "日勤", "夜勤", "ng", "NG"}
+_COMMENT_PATTERNS = (
+    "不可日なし",
+    "不可日無し",
+    "不可なし",
+    "不可無し",
+    "希望なし",
+    "希望無し",
+    "特になし",
+    "特に無し",
+    "なし",
+    "無し",
+    "ありません",
+)
 
 
 def _to_halfwidth(s: str) -> str:
@@ -87,12 +100,20 @@ def _extract_dates_from_line(line: str, default_year: int) -> list[date]:
     return dates
 
 
+def _is_noise_line(line: str) -> bool:
+    """名前・日付として扱わない行かどうかを判定する。"""
+    normalized = re.sub(r"\s+", "", line.strip())
+    if not normalized or normalized in _NOISE_WORDS or len(normalized) < 2:
+        return True
+    return any(pattern in normalized for pattern in _COMMENT_PATTERNS)
+
+
 def _classify_lines(lines: list[str], default_year: int) -> list[tuple[str, str | list[date] | None]]:
     """各行を ('name'|'date'|'noise', value) に分類する。"""
     classified: list[tuple[str, str | list[date] | None]] = []
     for line in lines:
         stripped = line.strip()
-        if not stripped or stripped in _NOISE_WORDS or len(stripped) < 2:
+        if _is_noise_line(stripped):
             classified.append(("noise", None))
             continue
         dates = _extract_dates_from_line(stripped, default_year)
@@ -101,6 +122,21 @@ def _classify_lines(lines: list[str], default_year: int) -> list[tuple[str, str 
         else:
             classified.append(("name", stripped))
     return classified
+
+
+def _first_content_type(classified: list[tuple[str, str | list[date] | None]]) -> str | None:
+    """最初の有効行の種別を返す。"""
+    for ctype, _ in classified:
+        if ctype != "noise":
+            return ctype
+    return None
+
+
+def _skip_noise(classified: list[tuple[str, str | list[date] | None]], i: int) -> int:
+    """空行などのノイズ行を読み飛ばす。"""
+    while i < len(classified) and classified[i][0] == "noise":
+        i += 1
+    return i
 
 
 def parse_ng_text(text: str, default_year: int | None = None) -> list[ParsedPersonNG]:
@@ -125,6 +161,7 @@ def parse_ng_text(text: str, default_year: int | None = None) -> list[ParsedPers
     classified = _classify_lines(lines, default_year)
     results: list[ParsedPersonNG] = []
     i = 0
+    first_content_type = _first_content_type(classified)
 
     while i < len(classified):
         ctype, cvalue = classified[i]
@@ -134,13 +171,20 @@ def parse_ng_text(text: str, default_year: int | None = None) -> list[ParsedPers
             continue
 
         if ctype == "name":
+            if first_content_type == "date":
+                # 日付先行の貼り付け形式では、名前の次の日時は次の人に紐づく。
+                i += 1
+                continue
+
             # パターン: 名前 → 日付（1行以上）
             name = cvalue
             dates: list[date] = []
             i += 1
+            i = _skip_noise(classified, i)
             while i < len(classified) and classified[i][0] == "date":
                 dates.extend(classified[i][1])
                 i += 1
+                i = _skip_noise(classified, i)
             if dates:
                 results.append(ParsedPersonNG(name, dates))
 
@@ -148,10 +192,12 @@ def parse_ng_text(text: str, default_year: int | None = None) -> list[ParsedPers
             # パターン: 日付（1行以上） → 名前
             dates = list(cvalue)
             i += 1
+            i = _skip_noise(classified, i)
             # 連続する日付行を収集
             while i < len(classified) and classified[i][0] == "date":
                 dates.extend(classified[i][1])
                 i += 1
+                i = _skip_noise(classified, i)
             # 次の有効な行が名前かチェック
             if i < len(classified) and classified[i][0] == "name":
                 name = classified[i][1]
