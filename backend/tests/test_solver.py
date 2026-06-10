@@ -322,6 +322,68 @@ def test_ng_entry_excludes_person():
         assert e.person_name != "田中"
 
 
+def _solo_member_settings() -> config.Settings:
+    solo = config.MemberConfig(
+        name="ソロ",
+        active=True,
+        assignable_day1=True,
+        assignable_day2=True,
+        assignable_night=True,
+    )
+    return config.Settings(
+        members=[solo],
+        schedule=config.ScheduleConfig(
+            day_shift_weekdays=[5, 6],
+            night_shift_start_weekday=0,
+        ),
+        constraints=config.ConstraintsConfig(
+            day_min_interval=14,
+            night_min_interval_weeks=7,
+            night_cooldown_days=2,
+        ),
+    )
+
+
+def test_weekend_ng_does_not_block_night_shift(monkeypatch: pytest.MonkeyPatch):
+    """土日NGは昼勤当番への申請。同週の夜勤ブロック（月曜始まり）には影響しない。"""
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", _solo_member_settings)
+    sat = date(2026, 5, 9)
+    sun = date(2026, 5, 10)
+    ng = NGEntry(person_name="ソロ", start_date=sat, end_date=sun)
+    result = generate_schedule(_make_request(ng_entries=[ng]))
+
+    nights = [e for e in result.entries if e.shift_category == ShiftCategory.NIGHT]
+    assert len(nights) == 7
+    assert {e.person_name for e in nights} == {"ソロ"}
+    assert not any("夜勤" in w and "スキップ" in w for w in result.warnings)
+    # 土日の昼勤からは除外される
+    assert not any(
+        e.shift_category == ShiftCategory.DAY and e.person_name == "ソロ"
+        for e in result.entries
+    )
+
+
+def test_monday_ng_blocks_night_shift_block(monkeypatch: pytest.MonkeyPatch):
+    """ブロック開始日（月曜）にNGがあれば、その週の夜勤には入れない。"""
+    import backend.app.core.solver as solver_mod
+
+    monkeypatch.setattr(solver_mod, "load_settings", _solo_member_settings)
+    ng = NGEntry(person_name="ソロ", start_date=_WEEK_START, end_date=_WEEK_START)
+    result = generate_schedule(_make_request(ng_entries=[ng]))
+
+    nights = [e for e in result.entries if e.shift_category == ShiftCategory.NIGHT]
+    assert not nights
+    assert any("週の夜勤：候補者なし" in w for w in result.warnings)
+    # 月曜NGは土日の昼勤には影響しない（土曜は割当可能）
+    sat_days = [
+        e for e in result.entries
+        if e.shift_category == ShiftCategory.DAY and e.date == date(2026, 5, 9)
+    ]
+    assert any(e.person_name == "ソロ" for e in sat_days)
+
+
 def test_day_min_interval_respected():
     sat = date(2026, 5, 9)
     # 前週土曜（7日前）に日勤した人を履歴に入れる → 14日未満なので除外されるはず

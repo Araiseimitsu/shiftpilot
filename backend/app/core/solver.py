@@ -324,10 +324,12 @@ def generate_schedule(request: ScheduleRequest) -> ScheduleResult:
             # (current - last_night) / 7 < 7 で落ち、候補ゼロになりやすい。割当日数/7に比例して必要間隔を下げる。
             night_block_ratio = min(len(open_night_dates) / 7.0, 1.0)
             required_night_interval_weeks = cfg.night_min_interval_weeks * night_block_ratio
+            # 夜勤NGはブロック開始日（通常は月曜。月曜が休業日なら最初の割当日）だけで判定する。
+            # 土日のNGは昼勤当番に対する申請なので、夜勤ブロックの可否には影響させない。
+            night_block_start = open_night_dates[0]
             candidates = []
             for name in pool_night:
-                # 7日分そろわない週（大型連休で出力期間が短い等）は、割当対象日のみでNGを見る
-                if any(_is_ng(name, d, ng_entries) for d in open_night_dates):
+                if _is_ng(name, night_block_start, ng_entries):
                     continue
                 if any(e.date in (sat, sun) and e.person_name == name for e in result_entries):
                     continue
